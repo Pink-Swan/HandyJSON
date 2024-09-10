@@ -66,7 +66,11 @@ fileprivate func convertValue(rawValue: Any, property: PropertyInfo, mapper: Hel
 
 fileprivate func assignProperty(convertedValue: Any, instance: _ExtendCustomModelType, property: PropertyInfo) {
     if property.bridged {
-        (instance as! NSObject).setValue(convertedValue, forKey: property.key)
+        if Mirror(reflecting: convertedValue).displayStyle == .enum {
+            extensions(of: property.type).write(convertedValue, to: property.address)
+        } else {
+            (instance as! NSObject).setValue(convertedValue, forKey: property.key)
+        }
     } else {
         extensions(of: property.type).write(convertedValue, to: property.address)
     }

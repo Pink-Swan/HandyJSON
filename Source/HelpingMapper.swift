@@ -98,30 +98,50 @@ public class HelpingMapper {
         self.specify(property: &property, name: name, converter: nil)
     }
     
+    public func specify<T>(property: inout T, names: [String]) {
+        self.specify(property: &property, names: names, converter: nil, json: nil)
+    }
+    
     public func specify<T>(property: inout T, converter: @escaping (String) -> T) {
         self.specify(property: &property, name: nil, converter: converter)
     }
     
     public func specify<T>(property: inout T, name: String?, converter: ((String) -> T)?) {
+        specify(property: &property, name: name, converter: converter, json: nil)
+    }
+    
+    public func specify<T>(property: inout T, name: String?, converter: ((String) -> T)?, json:((T) -> String?)?) {
+        specify(property: &property, names: name == nil ? nil : [name!], converter: converter, json: json)
+    }
+    
+    public func specify<T>(property: inout T, names: [String]?, converter: ((String) -> T)?, json:((T) -> String?)?) {
         let pointer = withUnsafePointer(to: &property, { return $0 })
         let key = Int(bitPattern: pointer)
-        let names = (name == nil ? nil : [name!])
+        let names = names
         
+        var assignmentClosure: ((Any?) -> (Any?))? = nil
+        var takeValueClosure: ((Any?) -> (Any?))? = nil
         if let _converter = converter {
-            let assignmentClosure = { (jsonValue: Any?) -> Any? in
+            assignmentClosure = { (jsonValue: Any?) -> Any? in
                 if let _value = jsonValue{
                     if let object = _value as? NSObject {
-                        if let str = String.transform(from: object){
+                        if let str = String.transform(from: object) {
                             return _converter(str)
                         }
                     }
                 }
                 return nil
             }
-            self.mappingHandlers[key] = MappingPropertyHandler(rawPaths: names, assignmentClosure: assignmentClosure, takeValueClosure: nil)
-        } else {
-            self.mappingHandlers[key] = MappingPropertyHandler(rawPaths: names, assignmentClosure: nil, takeValueClosure: nil)
         }
+        if let _json = json {
+            takeValueClosure = { (objectValue: Any?) -> Any? in
+                if let _value = objectValue as? T {
+                    return _json(_value)
+                }
+                return nil
+            }
+        }
+        self.mappingHandlers[key] = MappingPropertyHandler(rawPaths: names, assignmentClosure: assignmentClosure, takeValueClosure: takeValueClosure)
     }
     
     public func exclude<T>(property: inout T) {

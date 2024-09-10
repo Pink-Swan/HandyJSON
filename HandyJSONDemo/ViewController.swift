@@ -42,7 +42,12 @@ class Result<T: Data>: HandyJSON {
     var code: Int?
     var biz: Biz?
     var data: T?
+    var date: Date?
     required init() {}
+    
+    func mapping(mapper: HelpingMapper) {
+        mapper.specify(property: &date, name: "aaa", converter: CustomDateFormatTransform(formatString: "yyyy-MM-dd").transformFromJSON(_:), json: CustomDateFormatTransform(formatString: "yyyy-MM-dd").transformToJSON(_:))
+    }
 }
 
 class ViewController: UIViewController {
@@ -71,6 +76,7 @@ class ViewController: UIViewController {
         result.biz = Biz.social
         result.code = 200
         result.data = model
+        result.date = Date()
         print(result.toJSON()!)
         print(result.toJSONString()!)
         print(result.toJSONString(prettyPrint: true)!)
@@ -81,11 +87,12 @@ class ViewController: UIViewController {
     }
 
     func deserialization() {
-        let jsonString = "{\"data\":{\"aInt\":100,\"aStr\":\"string data\",\"id\":1},\"code\":200,\"biz\":\"social\"}"
+        let jsonString = "{\"data\":{\"aInt\":100,\"aStr\":\"string data\",\"id\":1},\"code\":200,\"biz\":\"social\",\"aaa\":\"2022-08-22\"}"
         if let result = Result<Model>.deserialize(from: jsonString) {
             print(result.data?.id ?? 0)
             print(result.code ?? "")
             print(result.biz ?? "")
+            print(result.date ?? "")
             print(result.data?.aInt ?? 0)
             print(result.data?.aStr ?? "")
         }
